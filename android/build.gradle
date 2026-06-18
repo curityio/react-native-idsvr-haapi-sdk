@@ -1,0 +1,196 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-parcelize'
+apply plugin: 'jacoco'
+apply from: "packageJsonUtils.gradle"
+
+group = 'se.curity.identityserver.haapi.reactnative.sdk'
+
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+useExpoPublishing()
+
+// If you want to use the managed Android SDK versions from expo-modules-core, set this to true.
+// The Android SDK versions will be bumped from time to time in SDK releases and may introduce breaking changes in your module code.
+// Most of the time, you may like to manage the Android SDK versions yourself.
+def useManagedAndroidSdkVersions = false
+if (useManagedAndroidSdkVersions) {
+  useDefaultAndroidSdkVersions()
+} else {
+  buildscript {
+    // Simple helper that allows the root project to override versions declared by this library.
+    ext.safeExtGet = { prop, fallback ->
+      rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
+    }
+
+    dependencies {
+        classpath 'org.codehaus.groovy:groovy-json:3.0.9'
+    }
+  }
+  project.android {
+    compileSdkVersion safeExtGet("compileSdkVersion", 36)
+    defaultConfig {
+      minSdkVersion safeExtGet("minSdkVersion", 26)
+      targetSdkVersion safeExtGet("targetSdkVersion", 36)
+    }
+  }
+}
+
+android {
+  namespace "se.curity.identityserver.haapi.reactnative.sdk"
+  defaultConfig {
+    versionCode versionCodeFromPackageJson().toInteger()
+    versionName versionNameFromPackageJson()
+  }
+  lintOptions {
+    abortOnError false
+  }
+  // Expose the SDK-root `__fixtures__/` directory on the JVM unit-test
+  // classpath so Kotlin tests can read the canonical token-response JSON
+  // alongside the iOS / TS suites. Files under `__fixtures__/` become
+  // available via `getResourceAsStream("/<filename>")` in test code.
+  sourceSets {
+    test {
+      resources.srcDirs += "../__fixtures__"
+    }
+  }
+}
+
+// Per-task unit-test result summary.
+//
+// Gradle's `--console=plain` (used on CI) prints only the task name for a
+// `Test` task — no test count — so a fast, correct JVM run is impossible to
+// tell apart from a skipped/cached one by eye. The "Android Tests" stage
+// clocking ~16s next to iOS's ~1m38s repeatedly read as "tests aren't
+// running", when in fact ~278 tests/variant execute in ~2s each (JVM unit
+// tests are fast; iOS is slow because it regenerates the xcodegen workspace,
+// compiles the whole Swift/pods tree and boots a simulator every run).
+//
+// Emit ONE summary line per `Test` task (debug + release) with the real
+// counts. No per-test event logging — that would reintroduce the `--info`
+// verbosity the pipeline deliberately avoids. `failed`/`skipped` events are
+// logged so failures stay legible.
+tasks.withType(Test).configureEach {
+    testLogging {
+        exceptionFormat = "full"
+        events "skipped", "failed"
+    }
+    def taskName = name
+    afterSuite { descriptor, result ->
+        if (descriptor.parent == null) {
+            println "[${taskName}] ${result.resultType}: ${result.testCount} tests " +
+                "(${result.successfulTestCount} passed, " +
+                "${result.failedTestCount} failed, ${result.skippedTestCount} skipped)"
+        }
+    }
+}
+
+// CI test-execution guard.
+//
+// Jenkins reuses its workspace and Gradle runs with `--build-cache`, so when
+// no tracked input changes the JVM unit-test tasks are skipped as UP-TO-DATE
+// (or restored FROM-CACHE) and the "Android Tests" stage finishes without
+// re-executing. The cached results are still valid, but the stage then gives
+// no signal that the tests actually ran on this build.
+//
+// On CI, force the unit-test tasks to execute every build: opt out of both
+// up-to-date checking and the build cache. Local builds keep both, so
+// iterative `./gradlew test` stays fast. Jenkins doesn't set `CI` by default,
+// so detect it via the standard Jenkins-injected vars too.
+def isCiBuild = ["CI", "JENKINS_URL", "JENKINS_HOME", "BUILD_NUMBER"].any {
+    System.getenv(it)?.trim()
+}
+if (isCiBuild) {
+    tasks.withType(Test).configureEach {
+        outputs.upToDateWhen { false }
+        outputs.cacheIf { false }
+    }
+}
+
+repositories {
+    maven { url 'https://hub.curityio.net/repository/curity-dev-repo-group/' }
+}
+
+configurations {
+    ktlintConfig
+}
+
+dependencies {
+    implementation "se.curity.identityserver:identityserver.haapi.android.sdk:${haapiVersionFromPackageJson()}"
+    testImplementation "junit:junit:4.13.2"
+    // Provide a real org.json implementation for JVM unit tests. The Android
+    // stub `android.jar` only includes signatures for `org.json` and throws
+    // "not mocked" at runtime, which would force every Record's `toString()`
+    // (built via `buildRecordString` → `JSONObject`) into its catch fallback.
+    testImplementation "org.json:json:20231013"
+    // MockK — Kotlin-native mocking. Needed to stand in for HAAPI SDK types
+    // whose constructors are `internal` (e.g. FormActionModel, Link) and for
+    // sealed interfaces like `HaapiResponse` that the JVM 17+ `permits` check
+    // refuses Mockito's runtime-generated proxies for.
+    testImplementation "io.mockk:mockk:1.13.13"
+    testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1"
+
+    ktlintConfig("com.pinterest.ktlint:ktlint-cli:1.8.0") {
+        attributes {
+            attribute(Bundling.BUNDLING_ATTRIBUTE, getObjects().named(Bundling, Bundling.EXTERNAL))
+        }
+    }
+}
+
+tasks.register('ktlint', JavaExec) {
+    description = "Check Kotlin code style."
+    classpath = configurations.ktlintConfig
+    mainClass = "com.pinterest.ktlint.Main"
+    args "src/**/*.kt"
+}
+
+tasks.register('ktlintFormat', JavaExec) {
+    group = "formatting"
+    description = "Fix Kotlin code style deviations."
+    classpath = configurations.ktlintConfig
+    mainClass = "com.pinterest.ktlint.Main"
+    args "-F", "src/**/*.kt"
+    jvmArgs "--add-opens", "java.base/java.lang=ALL-UNNAMED"
+}
+
+jacoco {
+    toolVersion = "0.8.12"
+}
+
+tasks.register('jacocoTestReport', JacocoReport) {
+    dependsOn 'testDebugUnitTest'
+
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+
+    def excludes = [
+        '**/R.class',
+        '**/R$*.class',
+        '**/BuildConfig.*',
+        '**/Manifest*.*',
+    ]
+
+    classDirectories.setFrom(
+        files(
+            fileTree(dir: "$buildDir/tmp/kotlin-classes/debug", excludes: excludes),
+            fileTree(dir: "$buildDir/intermediates/javac/debug/compileDebugJavaWithJavac/classes", excludes: excludes),
+        ),
+    )
+
+    sourceDirectories.setFrom(files('src/main/java'))
+    additionalSourceDirs.setFrom(files('src/main/java'))
+    executionData.setFrom(
+        fileTree(
+            dir: buildDir,
+            includes: [
+                'outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec',
+                'jacoco/testDebugUnitTest.exec',
+            ],
+        ),
+    )
+}
+

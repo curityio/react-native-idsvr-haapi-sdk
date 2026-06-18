@@ -1,0 +1,10 @@
+{
+  "name": "@curity/identityserver-haapi-react-native-sdk",
+  "platforms": ["ios", "android"],
+  "ios": {
+    "modules": ["IdsvrHaapiReactNativeSdkModule"]
+  },
+  "android": {
+    "modules": ["se.curity.identityserver.haapi.reactnative.sdk.IdsvrHaapiReactNativeSdkModule"]
+  }
+}

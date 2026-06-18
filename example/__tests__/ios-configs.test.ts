@@ -1,0 +1,461 @@
+/*
+ * Copyright (C) 2026 Curity AB. All rights reserved.
+ *
+ * The contents of this file are the property of Curity AB.
+ * You may not copy or use this file, in either source code
+ * or executable form, except in compliance with terms
+ * set by Curity AB.
+ *
+ * For further information, please contact Curity AB.
+ */
+import {
+    CryptoKeyType,
+    URLSessionOption,
+} from '@curity/identityserver-haapi-react-native-sdk';
+
+import {
+    IosClientName,
+    IOS_CLIENT_DEFS,
+    isEmulator,
+    isPhysical,
+    createAppIosConfiguration,
+    createDcrConfiguration,
+} from '../ios-configs';
+import {BASE_URL} from '../shared';
+
+// ---------------------------------------------------------------------------
+// Shared helpers & fixtures
+// ---------------------------------------------------------------------------
+
+var EMULATOR_NAMES = Object.values(IosClientName.Emulator);
+var PHYSICAL_NAMES = Object.values(IosClientName.Physical);
+var ALL_NAMES = EMULATOR_NAMES.concat(PHYSICAL_NAMES);
+
+function buildConfig(clientNameType, overrides) {
+    return createAppIosConfiguration({
+        clientNameType: clientNameType,
+        useDcrConfiguration:
+            overrides && overrides.useDcrConfiguration !== undefined
+                ? overrides.useDcrConfiguration
+                : false,
+        useRiskAssessmentConfiguration:
+            overrides && overrides.useRiskAssessmentConfiguration !== undefined
+                ? overrides.useRiskAssessmentConfiguration
+                : false,
+        urlSessionOption:
+            overrides && overrides.urlSessionOption !== undefined
+                ? overrides.urlSessionOption
+                : URLSessionOption.Default,
+        tokenBoundConfiguration: overrides && overrides.tokenBoundConfiguration,
+        authorizationParameters: overrides && overrides.authorizationParameters,
+        httpHeaders: overrides && overrides.httpHeaders,
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Enum completeness
+// ---------------------------------------------------------------------------
+
+describe('IosClientName enums', function () {
+    it('Emulator has 19 members', function () {
+        expect(EMULATOR_NAMES).toHaveLength(19);
+    });
+
+    it('Physical has 21 members', function () {
+        expect(PHYSICAL_NAMES).toHaveLength(21);
+    });
+
+    it('all 40 names are unique strings', function () {
+        var unique = new Set(ALL_NAMES);
+        expect(unique.size).toBe(40);
+    });
+
+    it('every name has an entry in IOS_CLIENT_DEFS', function () {
+        ALL_NAMES.forEach(function (name) {
+            expect(IOS_CLIENT_DEFS[name]).toBeDefined();
+        });
+    });
+
+    it('IOS_CLIENT_DEFS has exactly 40 entries', function () {
+        expect(Object.keys(IOS_CLIENT_DEFS)).toHaveLength(40);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Type guards
+// ---------------------------------------------------------------------------
+
+describe('isEmulator / isPhysical', function () {
+    it('isEmulator returns true for all Emulator members', function () {
+        EMULATOR_NAMES.forEach(function (name) {
+            expect(isEmulator(name)).toBe(true);
+        });
+    });
+
+    it('isEmulator returns false for all Physical members', function () {
+        PHYSICAL_NAMES.forEach(function (name) {
+            expect(isEmulator(name)).toBe(false);
+        });
+    });
+
+    it('isPhysical returns true for all Physical members', function () {
+        PHYSICAL_NAMES.forEach(function (name) {
+            expect(isPhysical(name)).toBe(true);
+        });
+    });
+
+    it('isPhysical returns false for all Emulator members', function () {
+        EMULATOR_NAMES.forEach(function (name) {
+            expect(isPhysical(name)).toBe(false);
+        });
+    });
+});
+
+// ---------------------------------------------------------------------------
+// createIOSConfiguration — common properties
+// ---------------------------------------------------------------------------
+
+describe('createIOSConfiguration — common properties', function () {
+    it('sets clientId to the client name', function () {
+        var config = buildConfig(IosClientName.Emulator.NoAuth);
+        expect(config.clientId).toBe(IosClientName.Emulator.NoAuth);
+    });
+
+    it('sets name to the client name', function () {
+        var config = buildConfig(IosClientName.Emulator.NoAuth);
+        expect(config.name).toBe(IosClientName.Emulator.NoAuth);
+    });
+
+    it('sets appRedirect to haapi:start', function () {
+        var config = buildConfig(IosClientName.Emulator.NoAuth);
+        expect(config.appRedirect).toBe('haapi:start');
+    });
+
+    it('sets urlSessionOption to Default', function () {
+        var config = buildConfig(IosClientName.Emulator.NoAuth);
+        expect(config.urlSessionOption).toBe(URLSessionOption.Default);
+    });
+
+    it('sets useRiskAssessmentConfiguration to false by default', function () {
+        var config = buildConfig(IosClientName.Emulator.NoAuth);
+        expect(config.useRiskAssessmentConfiguration).toBe(false);
+    });
+
+    it('leaves dcrConfiguration undefined when not provided', function () {
+        var config = buildConfig(IosClientName.Emulator.NoAuth);
+        expect(config.dcrConfiguration).toBeUndefined();
+    });
+
+    it('defaults tokenBoundConfiguration to SecureEnclave when not provided', function () {
+        var config = buildConfig(IosClientName.Emulator.NoAuth);
+        expect(config.tokenBoundConfiguration).toEqual({ keyPairType: 'secureEnclave' });
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Authentication methods
+// ---------------------------------------------------------------------------
+
+describe('createIOSConfiguration — authentication methods', function () {
+    describe('noAuthentication clients', function () {
+        var noAuthEmulators = [
+            IosClientName.Emulator.NoAuth,
+            IosClientName.Emulator.NoAuthDpopNonce,
+            IosClientName.Emulator.NoAuthDpopNonceTokenBound,
+            IosClientName.Emulator.NoAuthDpopNonceTokenBoundChange,
+        ];
+        var noAuthPhysicals = [
+            IosClientName.Physical.NoAuth,
+            IosClientName.Physical.NoAuthDpopNonce,
+            IosClientName.Physical.NoAuthDpopNonceTokenBound,
+            IosClientName.Physical.NoAuthDpopNonceTokenBoundChange,
+            IosClientName.Physical.NoAuthAttestationFails,
+        ];
+
+        noAuthEmulators.concat(noAuthPhysicals).forEach(function (name) {
+            it(name + ' uses kind "none"', function () {
+                var config = buildConfig(name);
+                expect(config.clientAuthenticationMethodConfiguration.kind).toBe('none');
+            });
+        });
+    });
+
+    describe('secret authentication clients', function () {
+        var secretClients = [
+            IosClientName.Emulator.Secret,
+            IosClientName.Emulator.SecretDpopNonceTokenBound,
+            IosClientName.Emulator.SecretWithoutAttestation,
+            IosClientName.Physical.Secret,
+            IosClientName.Physical.SecretDpopNonceTokenBound,
+            IosClientName.Physical.SecretWithoutAttestation,
+            IosClientName.Physical.SecretAttestationFails,
+        ];
+
+        secretClients.forEach(function (name) {
+            it(name + ' uses kind "secret"', function () {
+                var config = buildConfig(name);
+                expect(config.clientAuthenticationMethodConfiguration.kind).toBe('secret');
+            });
+        });
+    });
+
+    describe('MTLS authentication clients', function () {
+        var mtlsClients = [
+            IosClientName.Emulator.Mtls,
+            IosClientName.Physical.Mtls,
+        ];
+
+        mtlsClients.forEach(function (name) {
+            it(name + ' uses kind "mtls"', function () {
+                var config = buildConfig(name);
+                var auth = config.clientAuthenticationMethodConfiguration;
+                expect(auth.kind).toBe('mtls');
+                expect(auth.pkcs12Filename).toBe('mutual_tls_client');
+                expect(auth.pkcs12Passphrase).toBe('changeit');
+                expect(auth.serverPEMFilename).toBe('localhost');
+            });
+        });
+    });
+
+    describe('asymmetric RSA JWT clients', function () {
+        var rsaClients = [
+            IosClientName.Emulator.AsymRSA,
+            IosClientName.Emulator.AsymRSAWithoutAttestation,
+            IosClientName.Physical.AsymRSA,
+            IosClientName.Physical.AsymRSAWithoutAttestation,
+        ];
+
+        rsaClients.forEach(function (name) {
+            it(name + ' uses kind "jwt-asymmetric" with RS256', function () {
+                var config = buildConfig(name);
+                var auth = config.clientAuthenticationMethodConfiguration;
+                expect(auth.kind).toBe('jwtAsymmetric');
+                expect(auth.asymmetricAlgorithm).toBe('RS256');
+                expect(auth.pemFilename).toBe('rsa-private');
+            });
+        });
+    });
+
+    describe('asymmetric EC 256 JWT clients', function () {
+        var ec256Clients = [
+            IosClientName.Emulator.AsymEC256,
+            IosClientName.Emulator.AsymEC256WithoutAttestation,
+            IosClientName.Physical.AsymEC256,
+            IosClientName.Physical.AsymEC256WithoutAttestation,
+        ];
+
+        ec256Clients.forEach(function (name) {
+            it(name + ' uses kind "jwt-asymmetric" with ES256', function () {
+                var config = buildConfig(name);
+                var auth = config.clientAuthenticationMethodConfiguration;
+                expect(auth.kind).toBe('jwtAsymmetric');
+                expect(auth.asymmetricAlgorithm).toBe('ES256');
+                expect(auth.pemFilename).toBe('ec_256-private');
+            });
+        });
+    });
+
+    describe('asymmetric EC 384 JWT clients', function () {
+        var ec384Clients = [
+            IosClientName.Emulator.AsymEC384,
+            IosClientName.Emulator.AsymEC384WithoutAttestation,
+            IosClientName.Physical.AsymEC384,
+            IosClientName.Physical.AsymEC384WithoutAttestation,
+        ];
+
+        ec384Clients.forEach(function (name) {
+            it(name + ' uses kind "jwt-asymmetric" with ES384', function () {
+                var config = buildConfig(name);
+                var auth = config.clientAuthenticationMethodConfiguration;
+                expect(auth.kind).toBe('jwtAsymmetric');
+                expect(auth.asymmetricAlgorithm).toBe('ES384');
+                expect(auth.pemFilename).toBe('ec_384-private');
+            });
+        });
+    });
+
+    describe('asymmetric EC 512 JWT clients', function () {
+        var ec512Clients = [
+            IosClientName.Emulator.AsymEC512,
+            IosClientName.Emulator.AsymEC512WithoutAttestation,
+            IosClientName.Physical.AsymEC512,
+            IosClientName.Physical.AsymEC512WithoutAttestation,
+        ];
+
+        ec512Clients.forEach(function (name) {
+            it(name + ' uses kind "jwt-asymmetric" with ES512', function () {
+                var config = buildConfig(name);
+                var auth = config.clientAuthenticationMethodConfiguration;
+                expect(auth.kind).toBe('jwtAsymmetric');
+                expect(auth.asymmetricAlgorithm).toBe('ES512');
+                expect(auth.pemFilename).toBe('ec_512-private');
+            });
+        });
+    });
+
+    describe('symmetric JWT clients', function () {
+        it('emulator symmetric uses kind "jwt-symmetric" with HS256', function () {
+            var config = buildConfig(IosClientName.Emulator.Symmetric);
+            var auth = config.clientAuthenticationMethodConfiguration;
+            expect(auth.kind).toBe('jwtSymmetric');
+            expect(auth.symmetricAlgorithm).toBe('HS256');
+        });
+
+        it('physical symmetric uses kind "jwt-symmetric" with HS256', function () {
+            var config = buildConfig(IosClientName.Physical.Symmetric);
+            var auth = config.clientAuthenticationMethodConfiguration;
+            expect(auth.kind).toBe('jwtSymmetric');
+            expect(auth.symmetricAlgorithm).toBe('HS256');
+        });
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Attestation
+// ---------------------------------------------------------------------------
+
+describe('createIOSConfiguration — attestation', function () {
+    describe('emulator clients always have useAttestation = false', function () {
+        EMULATOR_NAMES.forEach(function (name) {
+            it(name, function () {
+                var config = buildConfig(name);
+                expect(config.attestationConfiguration.useAttestation).toBe(false);
+            });
+        });
+    });
+
+    describe('physical clients with attestation enabled', function () {
+        var attestationEnabled = [
+            IosClientName.Physical.NoAuth,
+            IosClientName.Physical.NoAuthDpopNonce,
+            IosClientName.Physical.NoAuthDpopNonceTokenBound,
+            IosClientName.Physical.NoAuthDpopNonceTokenBoundChange,
+            IosClientName.Physical.Secret,
+            IosClientName.Physical.SecretDpopNonceTokenBound,
+            IosClientName.Physical.Mtls,
+            IosClientName.Physical.AsymRSA,
+            IosClientName.Physical.AsymEC256,
+            IosClientName.Physical.AsymEC384,
+            IosClientName.Physical.AsymEC512,
+            IosClientName.Physical.Symmetric,
+        ];
+
+        attestationEnabled.forEach(function (name) {
+            it(name + ' has useAttestation = true', function () {
+                var config = buildConfig(name);
+                expect(config.attestationConfiguration.useAttestation).toBe(true);
+            });
+        });
+    });
+
+    describe('physical clients with attestation disabled (fails / without-attestation)', function () {
+        var attestationDisabled = [
+            IosClientName.Physical.NoAuthAttestationFails,
+            IosClientName.Physical.SecretWithoutAttestation,
+            IosClientName.Physical.SecretAttestationFails,
+            IosClientName.Physical.AsymRSAWithoutAttestation,
+            IosClientName.Physical.AsymEC256WithoutAttestation,
+            IosClientName.Physical.AsymEC384WithoutAttestation,
+            IosClientName.Physical.AsymEC512WithoutAttestation,
+            IosClientName.Physical.SymmetricWithoutAttestation,
+        ];
+
+        attestationDisabled.forEach(function (name) {
+            it(name + ' has useAttestation = false', function () {
+                var config = buildConfig(name);
+                expect(config.attestationConfiguration.useAttestation).toBe(false);
+            });
+        });
+    });
+
+    it('all attestation configs include attestationMaxRetries = 3', function () {
+        ALL_NAMES.forEach(function (name) {
+            var config = buildConfig(name);
+            expect(config.attestationConfiguration.attestationMaxRetries).toBe(3);
+        });
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Optional parameter forwarding
+// ---------------------------------------------------------------------------
+
+describe('createIOSConfiguration — optional parameters', function () {
+    it('enables dcrConfiguration when useDcrConfiguration is true', function () {
+        var dcr = createDcrConfiguration(BASE_URL);
+        var config = buildConfig(IosClientName.Emulator.NoAuth, {
+            useDcrConfiguration: true,
+        });
+        expect(config.dcrConfiguration).toEqual(dcr);
+    });
+
+    it('forwards useRiskAssessmentConfiguration = true', function () {
+        var config = buildConfig(IosClientName.Emulator.NoAuth, {
+            useRiskAssessmentConfiguration: true,
+        });
+        expect(config.useRiskAssessmentConfiguration).toBe(true);
+    });
+
+    it('forwards urlSessionOption', function () {
+        var config = buildConfig(IosClientName.Emulator.NoAuth, {
+            urlSessionOption: URLSessionOption.Ephemeral,
+        });
+        expect(config.urlSessionOption).toBe(URLSessionOption.Ephemeral);
+    });
+
+    it('forwards tokenBoundConfiguration', function () {
+        var tokenBound = { keyPairType: CryptoKeyType.SecureEnclave };
+        var config = buildConfig(IosClientName.Emulator.NoAuth, {
+            tokenBoundConfiguration: tokenBound,
+        });
+        expect(config.tokenBoundConfiguration).toEqual(tokenBound);
+    });
+
+    it('forwards authorizationParameters', function () {
+        var authParams = { scope: ['openid', 'profile'] };
+        var config = buildConfig(IosClientName.Emulator.NoAuth, {
+            authorizationParameters: authParams,
+        });
+        expect(config.authorizationParameters).toEqual(authParams);
+    });
+
+    it('forwards httpHeaders', function () {
+        var headers = { 'X-Test': 'value' };
+        var config = buildConfig(IosClientName.Emulator.NoAuth, {
+            httpHeaders: headers,
+        });
+        expect(config.httpHeaders).toEqual(headers);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// createDcrConfiguration
+// ---------------------------------------------------------------------------
+
+describe('createDcrConfiguration', function () {
+    it('sets templateClientId to the iOS DCR template', function () {
+        var dcr = createDcrConfiguration('https://example.com');
+        expect(dcr.templateClientId).toBe('dcr-template-client-haapi-ios');
+    });
+
+    it('builds clientRegistrationEndpointUrl from baseUrl', function () {
+        var dcr = createDcrConfiguration('https://example.com');
+        expect(dcr.clientRegistrationEndpointUrl).toBe(
+            'https://example.com/oauth/oauth-client-registration'
+        );
+    });
+});
+
+// ---------------------------------------------------------------------------
+// JSON serializability
+// ---------------------------------------------------------------------------
+
+describe('JSON serializability', function () {
+    it('every client config round-trips through JSON', function () {
+        ALL_NAMES.forEach(function (name) {
+            var config = buildConfig(name);
+            var parsed = JSON.parse(JSON.stringify(config));
+            expect(parsed).toEqual(config);
+        });
+    });
+});

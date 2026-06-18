@@ -1,0 +1,31 @@
+{
+  "name": "identityserver.haapi.reactnative.sdk-example",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "ios:clean": "cd ios && rm -rf Pods Podfile.lock && pod install --repo-update && cd .. && expo run:ios"
+  },
+  "dependencies": {
+    "expo": "~56.0.9",
+    "expo-build-properties": "~56.0.17",
+    "@curity/identityserver-haapi-react-native-sdk": "file:..",
+    "react": "19.2.3",
+    "react-native": "0.85.3"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.3",
+    "typescript": "^6.0.3"
+  },
+  "private": true,
+  "expo": {
+    "autolinking": {
+      "nativeModulesDir": "..",
+      "exclude": [
+        "expo-application"
+      ]
+    }
+  }
+}

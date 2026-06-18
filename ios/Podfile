@@ -1,0 +1,70 @@
+# Pod integration for the iOS unit-test workspace (xcodegen-generated).
+#
+# This Podfile is transitional. Once Expo SDK 56 ships ExpoModulesCore as
+# an SPM package (HSRN-24+), move ExpoModulesCore + RN from here into
+# `project.yml -> packages:` and delete this file.
+#
+# Hermes / new-arch flags flow from example/ios/Podfile.properties.json via
+# Podfile.shared.rb — flip them there, not here.
+
+require File.join(File.dirname(`node --print "require.resolve('expo/package.json', { paths: ['../example/node_modules'] })"`), "scripts/autolinking")
+require File.join(File.dirname(`node --print "require.resolve('react-native/package.json', { paths: ['../example/node_modules'] })"`), "scripts/react_native_pods")
+require_relative './Podfile.shared.rb'
+
+podfile_properties = haapi_load_shared_properties(File.join(__dir__, '..', 'example', 'ios', 'Podfile.properties.json'))
+
+platform :ios, haapi_deployment_target(podfile_properties)
+prepare_react_native_project!
+
+workspace 'IdsvrHaapiReactNativeSdk.xcworkspace'
+project   'IdsvrHaapiReactNativeSdk.xcodeproj'
+
+# Shared deps applied to both the framework target and the test target.
+# Both must see ExpoModulesCore + RN at compile time — the framework `imports`
+# them, the test target `@testable imports` the framework and needs the same
+# search paths.
+def haapi_test_workspace_pods(props, app_path)
+  use_expo_modules!
+
+  config_command = [
+    'npx',
+    'expo-modules-autolinking',
+    'react-native-config',
+    '--json',
+    '--platform',
+    'ios',
+  ]
+  config = use_native_modules!(config_command)
+
+  use_react_native!(
+    :path                             => config[:reactNativePath],
+    :hermes_enabled                   => haapi_hermes_enabled?(props),
+    :app_path                         => app_path,
+    :privacy_file_aggregation_enabled => props['apple.privacyManifestAggregationEnabled'] != 'false',
+  )
+
+  config
+end
+
+# The RN codegen script uses `app_path` to locate `package.json` and scan it
+# for native modules. The SDK root (one dir up from ios/) is the natural app
+# root: it owns package.json + node_modules. Tests don't actually consume the
+# generated codegen artifacts (they exercise Swift directly via @testable),
+# but codegen still needs to find a valid package.json to run.
+sdk_root_path = File.expand_path('..', __dir__)
+
+target 'RNIdsvrHaapiSdk' do
+  $haapi_rn_config = haapi_test_workspace_pods(podfile_properties, sdk_root_path)
+end
+
+target 'RNIdsvrHaapiSdkTests' do
+  haapi_test_workspace_pods(podfile_properties, sdk_root_path)
+end
+
+post_install do |installer|
+  react_native_post_install(
+    installer,
+    $haapi_rn_config[:reactNativePath],
+    :mac_catalyst_enabled => false,
+  )
+end
