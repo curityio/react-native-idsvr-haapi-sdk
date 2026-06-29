@@ -43,9 +43,9 @@ options:
 #
 # Mirrors the pin in `ios/Package.swift` and `IdsvrHaapiReactNativeSdk.podspec`'s
 # `spm_dependency(...)` call — the exact-version constraint comes from
-# `package.json -> haapi.version` (currently 5.5.0). Bumping the SDK version is
-# a coordinated change across all three sites; the duplication is tracked as a
-# follow-up automation candidate.
+# `package.json -> haapi.ios.version` (currently 5.5.0). This literal is kept in
+# sync by `scripts/sync-haapi-version.js` (run automatically by `npm run setup`,
+# guarded in CI via the script's `--check` mode); do not hand-edit it.
 packages:
   IdsvrHaapiSdk:
     url: https://github.com/curityio/ios-idsvr-haapi-sdk-dist

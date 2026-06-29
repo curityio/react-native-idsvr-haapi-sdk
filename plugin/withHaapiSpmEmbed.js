@@ -2,6 +2,10 @@ const { createRunOncePlugin, withXcodeProject } = require('expo/config-plugins')
 
 const pkg = require('../package.json');
 
+// iOS pins the HAAPI SDK from the per-platform source of truth in package.json
+// (`haapi.ios.version`). Android tracks its own `haapi.android.version`.
+const HAAPI_IOS_VERSION = pkg.haapi.ios.version;
+
 const SPM_PACKAGE_URL = 'https://github.com/curityio/ios-idsvr-haapi-sdk-dist.git';
 const SPM_PACKAGE_URL_NO_GIT = 'https://github.com/curityio/ios-idsvr-haapi-sdk-dist';
 const SPM_PRODUCT_NAME = 'IdsvrHaapiSdk';
@@ -82,7 +86,7 @@ function ensureRemoteSwiftPackageReference(project) {
     // including incremental (non --clean) runs that reuse the existing reference.
     section[existingKey].requirement = {
       kind: 'exactVersion',
-      version: pkg.haapi.version,
+      version: HAAPI_IOS_VERSION,
     };
     ensurePackageReferenceOnRootProject(project, existingKey);
     return existingKey;
@@ -94,7 +98,7 @@ function ensureRemoteSwiftPackageReference(project) {
     repositoryURL: `"${SPM_PACKAGE_URL}"`,
     requirement: {
       kind: 'exactVersion',
-      version: pkg.haapi.version,
+      version: HAAPI_IOS_VERSION,
     },
   };
   section[`${uuid}_comment`] = SPM_PACKAGE_REF_COMMENT;

@@ -55,7 +55,7 @@ Pod::Spec.new do |s|
 
   spm_dependency(s,
     url: 'https://github.com/curityio/ios-idsvr-haapi-sdk-dist.git',
-    requirement: { kind: 'exactVersion', version: package['haapi']['version'] },
+    requirement: { kind: 'exactVersion', version: package['haapi']['ios']['version'] },
     products: ['IdsvrHaapiSdk']
   )
 end

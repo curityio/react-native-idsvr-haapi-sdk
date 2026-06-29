@@ -11,6 +11,12 @@ jest.mock('expo/config-plugins', () => ({
 // Load the real plugin file after the config-plugin mocks are installed.
 const { withHaapiSpmEmbed } = require('../../../plugin/withHaapiSpmEmbed.js');
 
+// The plugin pins the SPM dependency to the iOS HAAPI SDK version from the
+// package.json source of truth. Assert against that value rather than a
+// hardcoded literal so an iOS version bump can't silently leave these
+// assertions stale.
+const IOS_VERSION = require('../../../package.json').haapi.ios.version;
+
 function createProjectFixture(): any {
   let nextUuid = 1;
   const projectSection: Record<string, any> = {
@@ -78,7 +84,10 @@ describe('withHaapiSpmEmbed', () => {
     expect(remote.repositoryURL).toBe(
       '"https://github.com/curityio/ios-idsvr-haapi-sdk-dist.git"'
     );
-    expect(remote.requirement).toEqual({ kind: 'exactVersion', version: '5.5.0' });
+    expect(remote.requirement).toEqual({
+      kind: 'exactVersion',
+      version: IOS_VERSION,
+    });
 
     const dependencySection =
       project.hash.project.objects.XCSwiftPackageProductDependency;
@@ -125,7 +134,7 @@ describe('withHaapiSpmEmbed', () => {
       [existingPackageUuid]: {
         isa: 'XCRemoteSwiftPackageReference',
         repositoryURL: '"https://github.com/curityio/ios-idsvr-haapi-sdk-dist"',
-        requirement: { kind: 'exactVersion', version: '5.5.0' },
+        requirement: { kind: 'exactVersion', version: IOS_VERSION },
       },
       [`${existingPackageUuid}_comment`]: 'ios-idsvr-haapi-sdk-dist',
     };
@@ -185,7 +194,7 @@ describe('withHaapiSpmEmbed', () => {
     expect(nonCommentKeys(remoteSection)).toHaveLength(1);
     expect(remoteSection[existingPackageUuid].requirement).toEqual({
       kind: 'exactVersion',
-      version: '5.5.0',
+      version: IOS_VERSION,
     });
   });
 });

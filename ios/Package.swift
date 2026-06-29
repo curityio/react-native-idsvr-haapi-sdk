@@ -18,8 +18,9 @@
 //       the transitional `ios/Podfile` is deleted and this manifest absorbs
 //       the remaining deps.
 //   (c) One canonical place for the IdsvrHaapiSdk SPM pin alongside the
-//       podspec and `project.yml`. Bumping the SDK version is coordinated
-//       across all three sites; automation candidate for a follow-up.
+//       podspec and `project.yml`. The version literal below is kept in sync
+//       with the others by `scripts/sync-haapi-version.js` (CI-guarded via its
+//       `--check` mode) — do not hand-edit it.
 //
 // What it is NOT:
 //
@@ -31,8 +32,8 @@
 //     `ExpoModulesCore` (which `swift test` cannot provide), and the
 //     xcodegen workspace is now the single source of truth for tests.
 //
-// HAAPI SDK version below MUST stay in sync with:
-//   - `package.json -> haapi.version`
+// HAAPI SDK version below is the iOS pin and MUST stay in sync with:
+//   - `package.json -> haapi.ios.version`
 //   - `ios/IdsvrHaapiReactNativeSdk.podspec` (`spm_dependency` call)
 //   - `ios/project.yml` (`packages: IdsvrHaapiSdk exactVersion`)
 //

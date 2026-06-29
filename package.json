@@ -1,6 +1,6 @@
 {
   "name": "@curity/identityserver-haapi-react-native-sdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "React native module for Haapi",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -63,7 +63,12 @@
     "react-native": "*"
   },
   "haapi": {
-    "version": "5.5.0"
+    "ios": {
+      "version": "5.5.0"
+    },
+    "android": {
+      "version": "5.5.1"
+    }
   },
   "engines": {
     "node": ">=22"

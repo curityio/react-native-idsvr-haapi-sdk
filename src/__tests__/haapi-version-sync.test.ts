@@ -9,50 +9,46 @@
  * For further information, please contact Curity AB.
  */
 
-// CI guard for the HAAPI native SDK version pin.
+// CI guard for the HAAPI native SDK version pins.
 //
-// package.json -> haapi.version is the source of truth. Two iOS test-
-// workspace files (project.yml + Package.swift) and one Android default-
-// fallback (packageJsonUtils.gradle) hold the same version literal but
-// don't read package.json at parse time. If any drifts, this test fails
-// loudly so the iOS xcodebuild stage doesn't break later.
+// package.json holds one HAAPI SDK version per platform (haapi.ios.version /
+// haapi.android.version). The iOS test-workspace files (project.yml +
+// Package.swift) and the Android default-fallback (packageJsonUtils.gradle)
+// hold those versions as literals but don't read package.json at parse time.
+//
+// Rather than re-encode the match patterns here, this guard runs the sync
+// script in --check mode. The script owns the patterns, so the matching logic
+// has a single source of truth; if any pin drifts the script exits non-zero
+// and this test fails loudly.
 //
 // Fix on failure: `npm run sync:haapi-version`.
 
+import { execFileSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 
 const ROOT = path.resolve(__dirname, "..", "..");
+const SCRIPT = path.join(ROOT, "scripts", "sync-haapi-version.js");
 const PKG = JSON.parse(
     fs.readFileSync(path.join(ROOT, "package.json"), "utf8")
 );
-const HAAPI_VERSION = PKG.haapi.version;
 
-function read(rel) {
-    return fs.readFileSync(path.join(ROOT, rel), "utf8");
-}
-
-describe("HAAPI SDK version is in sync across all pin sites", () => {
-    test("package.json haapi.version is a semver string", () => {
-        expect(HAAPI_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
+describe("HAAPI SDK version pins are in sync across all sites", () => {
+    test("package.json haapi.ios.version is a semver string", () => {
+        expect(PKG.haapi.ios.version).toMatch(/^\d+\.\d+\.\d+$/);
     });
 
-    test("ios/project.yml exactVersion matches package.json", () => {
-        const escaped = HAAPI_VERSION.replace(/\./g, "\\.");
-        expect(read("ios/project.yml")).toMatch(
-            new RegExp(`\\bexactVersion:\\s*${escaped}\\b`)
-        );
+    test("package.json haapi.android.version is a semver string", () => {
+        expect(PKG.haapi.android.version).toMatch(/^\d+\.\d+\.\d+$/);
     });
 
-    test("ios/Package.swift exact: matches package.json", () => {
-        expect(read("ios/Package.swift")).toContain(
-            `exact: "${HAAPI_VERSION}"`
-        );
-    });
-
-    test("android/packageJsonUtils.gradle default fallback matches package.json", () => {
-        expect(read("android/packageJsonUtils.gradle")).toContain(
-            `packageJsonValue("haapi.version", "${HAAPI_VERSION}")`
-        );
+    test("all literal pin sites match package.json (sync script --check)", () => {
+        // execFileSync throws on a non-zero exit, and the thrown error carries
+        // the script's stderr (its drift report) for Jest to surface. That
+        // throw IS the assertion — no need to re-encode the match patterns here.
+        execFileSync(process.execPath, [SCRIPT, "--check"], {
+            cwd: ROOT,
+            encoding: "utf8",
+        });
     });
 });

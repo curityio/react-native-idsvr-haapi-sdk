@@ -16,5 +16,5 @@ def packageJsonValue(path, defaultValue) {
 ext {
     versionNameFromPackageJson = { -> packageJsonValue("version", "1.0.0") }
     versionCodeFromPackageJson = { -> packageJsonValue("android.versionCode", 1) }
-    haapiVersionFromPackageJson = { -> packageJsonValue("haapi.version", "5.5.0") }
+    haapiVersionFromPackageJson = { -> packageJsonValue("haapi.android.version", "5.5.1") }
 }
