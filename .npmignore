@@ -1,0 +1,113 @@
+# What ships to npm consumers:
+#   - src/                       (TS source — referenced by build/'s sourcemaps)
+#   - build/                     (compiled TS — package.json main + types)
+#   - tsconfig.json              (so the `prepare` build can find its project
+#                                 when downstream tooling runs `npm i` on the
+#                                 packed tarball — bare `tsc` needs it)
+#   - ios/ (bridge sources)      (consumed by `pod install` via the podspec)
+#   - android/ (bridge sources)  (consumed by Gradle via build.gradle)
+#   - package.json
+#   - expo-module.config.json    (autolinking discovery)
+#   - LICENSE
+#   - README.md
+#   - CHANGELOG.md
+#
+# Everything else in the repo (tests, dev configs, internal docs, build
+# caches, abandoned spike artifacts, example/demo apps) is excluded here.
+
+# Tarballs from `npm pack`
+/*.tgz
+
+# Top-level hidden dirs (.git/, .expo/, .vscode/, .idea/, etc.)
+/.*/
+
+# Dev configs that consumers don't need
+.nvmrc
+.editorconfig
+.eslintrc.js
+.gitignore
+.npmignore
+**/.editorconfig
+/babel.config.js
+/jest.config.js
+/eslint.config.js
+# NOTE: tsconfig.json is intentionally NOT excluded — the `prepare` script
+# runs `expo-module build` (bare `tsc`), which auto-detects tsconfig.json in
+# the cwd. Stripping it makes that build print tsc's help and exit 1 when
+# downstream tooling runs `npm i` on the packed tarball.
+
+# AI-agent guidance — not consumer-facing (knowledge base + plans live at the
+# repo root ai/, structurally outside the package)
+/AGENTS.md
+/CLAUDE.md
+/docs/
+/DEVELOPMENT.md
+
+# Dev-only utility scripts (HAAPI version sync, etc.) — consumers don't bump pins
+/scripts/
+
+# Tests (TS + iOS + Android) — consumers don't run our tests
+__mocks__/
+__tests__/
+**/__mocks__/
+**/__tests__/
+/__fixtures__/
+/ios/Tests/
+/android/src/test/
+/android/src/androidTest/
+
+# Example app — dev surface, not part of the SDK
+/example/
+
+# iOS native test workspace + dev-only build infrastructure
+/ios/Package.swift
+/ios/Package.resolved
+/ios/project.yml
+/ios/Podfile
+/ios/Podfile.shared.rb
+/ios/Podfile.lock
+/ios/.gitignore
+/ios/CLAUDE.md
+/ios/.xcode.env
+/ios/.xcode.env.local
+
+# Build outputs and caches (also gitignored — belt-and-suspenders)
+/ios/.build/
+/ios/Pods/
+/ios/build/
+/ios/IdsvrHaapiReactNativeSdk.xcworkspace/
+/ios/IdsvrHaapiReactNativeSdk.xcodeproj/
+**/*.xcframework/
+**/*.xcworkspace/
+**/*.xcodeproj/
+**/Pods/
+**/.gradle/
+/android/build/
+/android/.gradle/
+/android/.idea/
+
+# Stray Expo-app artifacts that ended up in the SDK's android/ — these
+# are not part of the SDK module structure (an Android library has no
+# `app/` subdir; the gradle wrapper is owned by the consumer, not the
+# library).
+/android/app/
+/android/gradle/
+/android/CLAUDE.md
+
+# OS / editor noise
+.DS_Store
+**/.DS_Store
+.vscode/
+.idea/
+
+# Lockfiles — npm doesn't ship lockfiles for libraries by default,
+# but be explicit (consumer's lockfile is the source of truth for
+# their app, not ours)
+/package-lock.json
+/yarn.lock
+/pnpm-lock.yaml
+
+# E2E test tier — Maestro flows + lane runner. Development-only; never shipped.
+# (.npmignore is a blocklist: new top-level dirs ship by default unless excluded,
+# and pack-contents.test.ts locks the tarball contents.)
+/e2e/

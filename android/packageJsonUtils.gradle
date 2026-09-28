@@ -1,0 +1,20 @@
+import groovy.json.JsonSlurper
+
+def packageJsonValue(path, defaultValue) {
+    def packageJsonFile = file("../package.json")
+    if (packageJsonFile.canRead()) {
+        def json = new JsonSlurper().parseText(packageJsonFile.text)
+        try {
+            return path.split("\\.").inject(json) { obj, key -> obj[key] } ?: defaultValue
+        } catch (Exception e) {
+            println("💥Could not read '${path}' from package.json, using default: ${defaultValue}")
+        }
+    }
+    return defaultValue
+}
+
+ext {
+    versionNameFromPackageJson = { -> packageJsonValue("version", "1.0.0") }
+    versionCodeFromPackageJson = { -> packageJsonValue("android.versionCode", 1) }
+    haapiVersionFromPackageJson = { -> packageJsonValue("haapi.android.version", "5.6.0") }
+}

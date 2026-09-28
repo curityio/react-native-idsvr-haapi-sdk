@@ -1,0 +1,19 @@
+.build/
+
+# xcodegen output (regenerate with `xcodegen generate`)
+IdsvrHaapiReactNativeSdk.xcodeproj/
+
+# pod install output (regenerate with `pod install` from this dir)
+IdsvrHaapiReactNativeSdk.xcworkspace/
+Pods/
+Podfile.lock
+
+# Per-machine NODE_BINARY override for Xcode script phases. The versioned
+# `.xcode.env` uses `$(command -v node)`, which is portable; this `.local`
+# file hardcodes a path (typically an nvm-managed node) that's machine-
+# specific. Matches the example app's convention.
+.xcode.env.local
+
+# Per-user Xcode state
+xcuserdata/
+*.xcuserstate
