@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The same exclusions for Android 12 and higher, for cloud backup and device-to-device transfer.
+     One file per rule: Android matches `path` as a single literal file name. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="haapi_token_bound_storage.xml" />
+        <exclude domain="sharedpref" path="haapi-dpop-encrypted-store.xml" />
+        <exclude domain="sharedpref" path="token_binding_migration.xml" />
+        <exclude domain="sharedpref" path="e2e_existing_token_binding_store.xml" />
+        <exclude domain="sharedpref" path="e2e_harness_state.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="haapi_token_bound_storage.xml" />
+        <exclude domain="sharedpref" path="haapi-dpop-encrypted-store.xml" />
+        <exclude domain="sharedpref" path="token_binding_migration.xml" />
+        <exclude domain="sharedpref" path="e2e_existing_token_binding_store.xml" />
+        <exclude domain="sharedpref" path="e2e_harness_state.xml" />
+    </device-transfer>
+</data-extraction-rules>

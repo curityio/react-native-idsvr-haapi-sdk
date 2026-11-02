@@ -1,0 +1,9 @@
+{
+  "platforms": ["android", "ios"],
+  "android": {
+    "modules": ["se.curity.identityserver.haapi.reactnative.sdk.example.e2e.HaapiE2eModule"]
+  },
+  "ios": {
+    "modules": ["HaapiE2eModule"]
+  }
+}

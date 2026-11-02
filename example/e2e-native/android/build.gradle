@@ -1,0 +1,38 @@
+// Example-app E2E hooks (Android only). Not part of the SDK and never published.
+import groovy.json.JsonSlurper
+
+apply plugin: 'com.android.library'
+
+group = 'se.curity.identityserver.haapi.reactnative.sdk.example.e2e'
+
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+
+// The native HAAPI SDK at the version the React Native SDK bundles — step 2 of the how-to.
+def haapiAndroidVersion = new JsonSlurper().parseText(file("../../../package.json").text).haapi.android.version
+
+android {
+  namespace "se.curity.identityserver.haapi.reactnative.sdk.example.e2e"
+  compileSdkVersion rootProject.ext.has("compileSdkVersion") ? rootProject.ext.get("compileSdkVersion") : 36
+  defaultConfig {
+    minSdkVersion rootProject.ext.has("minSdkVersion") ? rootProject.ext.get("minSdkVersion") : 26
+  }
+  // The recipe logs through android.util.Log, which the JVM's stub android.jar can't run.
+  testOptions {
+    unitTests.returnDefaultValues = true
+  }
+}
+
+repositories {
+  maven { url 'https://hub.curityio.net/repository/curity-dev-repo-group/' }
+}
+
+dependencies {
+  implementation project(':curity-identityserver-haapi-react-native-sdk')
+  implementation "se.curity.identityserver:identityserver.haapi.android.sdk:${haapiAndroidVersion}"
+  // The storage move's JVM tests, over in-memory stores; the versions the SDK module tests with.
+  testImplementation "junit:junit:4.13.2"
+  testImplementation "io.mockk:mockk:1.13.13"
+}

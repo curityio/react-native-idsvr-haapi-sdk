@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Keeps token-binding state and the E2E harness state out of Auto Backup (Android 11 and lower),
+     as the migration how-to recommends: stored values are bound to the device that wrote them.
+     One file per rule: Android matches `path` as a single literal file name. -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="haapi_token_bound_storage.xml" />
+    <exclude domain="sharedpref" path="haapi-dpop-encrypted-store.xml" />
+    <exclude domain="sharedpref" path="token_binding_migration.xml" />
+    <exclude domain="sharedpref" path="e2e_existing_token_binding_store.xml" />
+    <exclude domain="sharedpref" path="e2e_harness_state.xml" />
+</full-backup-content>

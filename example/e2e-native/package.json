@@ -1,0 +1,7 @@
+{
+  "name": "haapi-e2e-native",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Example-app E2E hooks: the storage-migration scenario (Android) and the DPoP scenarios' request to the server (Android and iOS). Not part of the SDK.",
+  "main": "index.ts"
+}

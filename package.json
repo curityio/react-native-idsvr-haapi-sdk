@@ -1,0 +1,90 @@
+{
+  "name": "@curity/identityserver-haapi-react-native-sdk",
+  "version": "1.2.0",
+  "description": "React native module for Haapi",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "scripts": {
+    "build": "expo-module build",
+    "build:once": "EXPO_NONINTERACTIVE=1 expo-module build",
+    "clean": "expo-module clean",
+    "lint": "expo-module lint",
+    "test": "expo-module test --passWithNoTests",
+    "prepare": "expo-module prepare && EXPO_NONINTERACTIVE=1 expo-module build",
+    "prepublishOnly": "expo-module prepublishOnly",
+    "open:ios": "xed example/ios",
+    "open:android": "open -a \"Android Studio\" example/android",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "sync:haapi-version": "node scripts/sync-haapi-version.js",
+    "setup": "npm run sync:haapi-version && npm install && EXPO_NONINTERACTIVE=1 npm run build && cd example && npm install",
+    "setup:ios": "npm run setup && cd example/ios && rm -rf Pods Podfile.lock build && pod install --repo-update",
+    "setup:android": "npm run setup && cd example/android && ./gradlew clean",
+    "setup:all": "npm run setup && cd example/ios && rm -rf Pods Podfile.lock build && pod install --repo-update && cd ../android && ./gradlew clean",
+    "setup:ios:native": "npm run setup && cd ios && rm -rf Pods Podfile.lock && xcodegen generate && pod install",
+    "test:ios:native": "npm run setup:ios:native && cd ios && xcodebuild test -workspace IdsvrHaapiReactNativeSdk.xcworkspace -scheme RNIdsvrHaapiSdk -destination 'platform=iOS Simulator,OS=latest,name=iPhone 17'",
+    "run:ios": "npm run setup:ios && cd example && npx expo run:ios",
+    "run:android": "npm run setup:android && cd example && npx expo run:android",
+    "run:all": "npm run setup:all && cd example && npx expo run:ios && npx expo run:android",
+    "server:start": "cd ../server && ./gradlew startCurityDocker",
+    "server:setup": "cd ../server && ./gradlew setupCurityDocker -PidsvrHost=${E2E_IDSVR_HOST:-localhost:8443}",
+    "server:stop": "cd ../server && ./gradlew stopCurityDocker",
+    "e2e:ios": "node e2e/scripts/e2e-run.js ios-sim",
+    "e2e:android": "node e2e/scripts/e2e-run.js android-emu",
+    "e2e:ios:device": "node e2e/scripts/e2e-run.js ios-device",
+    "e2e:android:device": "node e2e/scripts/e2e-run.js android-device"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "identityserver-haapi-react-native-sdk",
+    "IdsvrHaapiReactNativeSdk",
+    "curity",
+    "haapi",
+    "oauth2",
+    "oidc",
+    "authentication"
+  ],
+  "repository": "https://github.com/curityio/react-native-idsvr-haapi-sdk",
+  "bugs": {
+    "url": "https://github.com/curityio/react-native-idsvr-haapi-sdk/issues"
+  },
+  "author": "Curity AB (https://github.com/curityio)",
+  "license": "UNLICENSED",
+  "homepage": "https://github.com/curityio/react-native-idsvr-haapi-sdk#readme",
+  "dependencies": {
+    "expo": "*",
+    "react": "19.2.3",
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.3",
+    "expo": "~57.0.22",
+    "expo-module-scripts": "^56.0.3",
+    "react-native": "0.86.3",
+    "typescript": "^6.0.3"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  },
+  "overrides": {
+    "jest-expo": "~57.0.5",
+    "@react-native/jest-preset": "0.86.3"
+  },
+  "haapi": {
+    "ios": {
+      "version": "5.7.1"
+    },
+    "android": {
+      "version": "5.7.0"
+    }
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "android": {
+    "versionCode": 1
+  }
+}

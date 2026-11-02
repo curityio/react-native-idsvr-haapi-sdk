@@ -1,0 +1,161 @@
+# xcodegen spec for the iOS unit-test workspace.
+#
+# What this generates:
+#   - RNIdsvrHaapiSdk.framework — compiles every Swift file in ios/ that
+#     matches the podspec's source_files glob (which is the production
+#     SDK source set).
+#   - RNIdsvrHaapiSdkTests.xctest — XCTest bundle covering all five test
+#     directories under Tests/.
+#   - SPM dependency on IdsvrHaapiSdk.
+#
+# CocoaPods integration:
+#   ExpoModulesCore + React Native come from `pod install` (see ios/Podfile),
+#   not from this file. xcodegen generates the .xcodeproj; pod install
+#   generates the .xcworkspace and wires xcconfig overlays onto our targets.
+#   The test workflow always uses the workspace:
+#       xcodebuild test -workspace IdsvrHaapiReactNativeSdk.xcworkspace ...
+#
+# Regenerate the xcodeproj after editing this file:
+#   cd identityserver.haapi.reactnative.sdk/ios && xcodegen generate
+#   cd identityserver.haapi.reactnative.sdk/ios && pod install
+#
+# Run the tests:
+#   cd identityserver.haapi.reactnative.sdk/ios && xcodebuild test \
+#     -workspace IdsvrHaapiReactNativeSdk.xcworkspace \
+#     -scheme RNIdsvrHaapiSdk \
+#     -destination 'platform=iOS Simulator,OS=latest,name=iPhone 17'
+#
+# Source-list parity with the podspec:
+#   The framework's `sources:` glob below mirrors `s.source_files` /
+#   `s.exclude_files` in IdsvrHaapiReactNativeSdk.podspec. Changes to one
+#   must mirror to the other — by construction the same files are picked up.
+
+name: IdsvrHaapiReactNativeSdk
+
+options:
+  bundleIdPrefix: se.curity.identityserver.haapi.reactnative.sdk
+  deploymentTarget:
+    iOS: '16.4'
+  developmentLanguage: en
+  createIntermediateGroups: true
+
+# Remote Swift Package Manager dependency.
+#
+# Mirrors the pin in `ios/Package.swift` and `IdsvrHaapiReactNativeSdk.podspec`'s
+# `spm_dependency(...)` call — the exact-version constraint comes from
+# `package.json -> haapi.ios.version` (currently 5.7.1). This literal is kept in
+# sync by `scripts/sync-haapi-version.js` (run automatically by `npm run setup`,
+# guarded in CI via the script's `--check` mode); do not hand-edit it.
+packages:
+  IdsvrHaapiSdk:
+    url: https://github.com/curityio/ios-idsvr-haapi-sdk-dist
+    exactVersion: 5.7.1
+
+settings:
+  base:
+    SWIFT_VERSION: '6.0'
+    IPHONEOS_DEPLOYMENT_TARGET: '16.4'
+    DEAD_CODE_STRIPPING: YES
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: NO
+    GENERATE_INFOPLIST_FILE: YES
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGNING_ALLOWED: NO
+  configs:
+    Debug:
+      ENABLE_TESTABILITY: YES
+      SWIFT_OPTIMIZATION_LEVEL: "-Onone"
+    Release:
+      ENABLE_TESTABILITY: YES
+      SWIFT_OPTIMIZATION_LEVEL: "-O"
+
+targets:
+  RNIdsvrHaapiSdk:
+    type: framework
+    platform: iOS
+    # Mirror of IdsvrHaapiReactNativeSdk.podspec:
+    #   s.source_files  = "**/*.{h,m,mm,swift,hpp,cpp}"
+    #   s.exclude_files = [
+    #     "Tests/**/*",
+    #     "Pods/**/*",
+    #     "build/**/*",
+    #     "*.xcodeproj/**/*",
+    #     "*.xcworkspace/**/*",
+    #     "Package.swift",
+    #   ]
+    sources:
+      - path: .
+        includes:
+          - "**/*.swift"
+          - "**/*.h"
+          - "**/*.m"
+          - "**/*.mm"
+          - "**/*.hpp"
+          - "**/*.cpp"
+        excludes:
+          - "Tests/**/*"
+          - "Pods/**/*"
+          - "build/**/*"
+          # SwiftPM dev/index-only build dir — contains the SDK's downloaded
+          # IdsvrHaapiSdk.xcframework and other SPM checkouts that we MUST NOT
+          # let xcodegen pull into our framework's source list. Without this
+          # exclude, xcodegen produces a duplicate IdsvrHaapiSdk.framework
+          # build command (one from our SPM packages: block, one from the
+          # vendored xcframework inside .build/).
+          - ".build/**/*"
+          - "*.xcodeproj/**/*"
+          - "*.xcworkspace/**/*"
+          - "Package.swift"
+          # Belt-and-suspenders: never include any .xcframework directory's
+          # contents in the framework target's sources.
+          - "**/*.xcframework"
+          - "**/*.xcframework/**/*"
+    dependencies:
+      - package: IdsvrHaapiSdk
+        product: IdsvrHaapiSdk
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: se.curity.identityserver.haapi.reactnative.sdk.RNIdsvrHaapiSdk
+        PRODUCT_NAME: RNIdsvrHaapiSdk
+        DEFINES_MODULE: YES
+        BUILD_LIBRARY_FOR_DISTRIBUTION: NO
+        SKIP_INSTALL: YES
+
+  RNIdsvrHaapiSdkTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests/NativeRegistryTests
+      - path: Tests/HaapiAccessorStoreTests
+      - path: Tests/HaapiErrorNormalizerTests
+      - path: Tests/LoggingTests
+      - path: Tests/RepresentationTests
+      # Cross-platform fixture JSONs (HSRN-20 / D17). Mirrored from
+      # `__fixtures__/` at the SDK root so iOS xctest reads the same
+      # canonical server-output payloads consumed by Jest (`require(...)`)
+      # and Android JUnit (`getResourceAsStream(...)` via
+      # `sourceSets.test.resources.srcDirs`). The path is relative to
+      # `ios/`, so `../__fixtures__/` resolves to the package-root fixtures
+      # directory. `buildPhase: resources` makes xcodegen copy them into
+      # the test bundle so `Bundle(for: type(of: self)).url(...)` finds them.
+      - path: ../__fixtures__
+        buildPhase: resources
+        includes:
+          - "*.json"
+    dependencies:
+      - target: RNIdsvrHaapiSdk
+      - package: IdsvrHaapiSdk
+        product: IdsvrHaapiSdk
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: se.curity.identityserver.haapi.reactnative.sdk.RNIdsvrHaapiSdkTests
+
+schemes:
+  RNIdsvrHaapiSdk:
+    build:
+      targets:
+        RNIdsvrHaapiSdk: all
+        RNIdsvrHaapiSdkTests: [test]
+    test:
+      targets:
+        - RNIdsvrHaapiSdkTests
+      gatherCoverageData: false

@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "identityserver.haapi.reactnative.sdk_example",
+    "slug": "haapi-rn-example",
+    "version": "1.0.0",
+    "scheme": "se.curity.identityserver.haapi.reactnative.sdk.example",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "io.curity.cat.ios.client",
+      "entitlements": {
+        "keychain-access-groups": [
+          "$(AppIdentifierPrefix)io.curity.cat.ios.client",
+          "$(AppIdentifierPrefix)io.curity.cat.ios.client.shared"
+        ]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "predictiveBackGestureEnabled": false,
+      "minSdkVersion": 26,
+      "package": "se.curity.identityserver.haapi.reactnative.sdk.example"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ],
+      "@curity/identityserver-haapi-react-native-sdk",
+      "./plugins/withExampleIosBuildSettings"
+    ]
+  }
+}
